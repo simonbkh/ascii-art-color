@@ -3,6 +3,8 @@ package color
 import (
 	"fmt"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -20,12 +22,6 @@ var (
 
 func Printer(inputLine string, slice [][]string, substring string, color string) {
 	// Check for non-printable characters
-	for _, char := range inputLine {
-		if char < 32 || char > 126 {
-			fmt.Printf("Character '%c' is not a printable ASCII character\n", char)
-			return
-		}
-	}
 	for j := 0; j < 8; j++ {
 		i := 0
 		for i < len(inputLine) {
@@ -70,6 +66,25 @@ func getColor(colors string) string {
 	case "white":
 		return White
 	default:
+		if strings.HasPrefix(colors, "rgb(") && strings.HasSuffix(colors, ")") {
+			rgbRegex := regexp.MustCompile(`rgb\((\d+),(\d+),(\d+)\)`)
+			match := rgbRegex.FindStringSubmatch(colors)
+			if match != nil {
+				r, _ := strconv.Atoi(match[1])
+				g, _ := strconv.Atoi(match[2])
+				b, _ := strconv.Atoi(match[3])
+				return fmt.Sprintf("\x1b[38;2;%d;%d;%dm", r, g, b)
+			}
+		}else if strings.HasPrefix(colors, "#"){
+			hexRegex := regexp.MustCompile(`#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})`)
+			match := hexRegex.FindStringSubmatch(colors)
+			if match != nil {
+				r, _ := strconv.ParseInt(match[1], 16, 8)
+				g, _ := strconv.ParseInt(match[2], 16, 8)
+				b, _ := strconv.ParseInt(match[3], 16, 8)
+				return fmt.Sprintf("\x1b[38;2;%d;%d;%dm", r, g, b)
+			}
+		}
 		return ""
 	}
 }

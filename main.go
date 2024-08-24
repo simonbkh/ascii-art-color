@@ -87,6 +87,9 @@ func main() {
 		inputLines := strings.Split(input, "\\n")
 		// checking if the input has only newlines
 		inputLines = color.OnlyNewLine(inputLines)
+		if !color.IsPrintable(inputLines){
+			return
+		}
 		for _, value := range inputLines {
 			if value == "" {
 				fmt.Println()
