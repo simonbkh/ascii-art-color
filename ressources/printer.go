@@ -20,18 +20,25 @@ var (
 	Reset   = "\x1b[0m"
 )
 
-func Printer(inputLine string, slice [][]string, substring string, color string) {
+func Printer(inputLine string, slice [][]string, substring string, color string, ind []int) {
 	// Check for non-printable characters
 	for j := 0; j < 8; j++ {
+		temp := ind
 		i := 0
 		for i < len(inputLine) {
-			if (len(os.Args) == 4 || len(os.Args) == 5) && strings.HasPrefix(inputLine[i:], substring) {
+			
+			if (len(os.Args) == 4 || len(os.Args) == 5) && (len(temp) != 0 && temp[0] == i) {
+				if temp[0] == -1{
+					fmt.Println()
+					continue
+				}
 				for k := 0; k < len(substring); k++ {
 					char := inputLine[i+k]
 					index := int(char) - 32
 					fmt.Print(getColor(color) + slice[index][j] + Reset)
 				}
-				i += len(substring) // skips the chars just processed
+				i += len(substring)
+				temp = ind[1:] // skips the chars just processed
 			} else {
 				char := inputLine[i]
 				index := int(char) - 32

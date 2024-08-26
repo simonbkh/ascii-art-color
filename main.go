@@ -90,11 +90,12 @@ func main() {
 		if !color.IsPrintable(inputLines){
 			return
 		}
+		instences := color.FirstInstance(substring,input)
 		for _, value := range inputLines {
 			if value == "" {
 				fmt.Println()
 			} else {
-				color.Printer(value, color.Slice, substring, colors)
+				color.Printer(input, color.Slice, substring, colors, instences)
 			}
 		}
 	}
