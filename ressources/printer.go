@@ -3,58 +3,63 @@ package color
 import (
 	"fmt"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 )
 
 var (
-	Black   = "\x1b[30m"
-	Red     = "\x1b[31m"
-	Green   = "\x1b[32m"
-	Yellow  = "\x1b[33m"
-	Blue    = "\x1b[34m"
-	Magenta = "\x1b[35m"
-	Cyan    = "\x1b[36m"
-	White   = "\x1b[37m"
+	IsOutput bool
+	Black   = "\x1b[38;2;0;0;0m"
+	Red     = "\x1b[38;2;255;0;0m"
+	Green   = "\x1b[38;2;0;255;0m"
+	Yellow  = "\x1b[38;2;255;255;0m"
+	Blue    = "\x1b[38;2;0;0;255m"
+	Magenta = "\x1b[38;2;0;0;255m"
+	Cyan    = "\x1b[38;2;43;255;255m"
+	White   = "\x1b[38;2;255;255;255m"
+	Orange = "\x1b[38;2;255;140;0m"
 	Reset   = "\x1b[0m"
 )
 
-func Printer(inputLine string, slice [][]string, substring string, color string, ind []int) {
+// Prints the inputs as a ASCII ART
+func Printer(inputLine string, slice [][]string, substring string, color string)string {
+	str := ""
 	// Check for non-printable characters
 	for j := 0; j < 8; j++ {
-		temp := ind
 		i := 0
 		for i < len(inputLine) {
-			
-			if (len(os.Args) == 4 || len(os.Args) == 5) && (len(temp) != 0 && temp[0] == i) {
-				if temp[0] == -1{
-					fmt.Println()
-					continue
-				}
+			if (len(os.Args) == 4 || len(os.Args) == 5) && strings.HasPrefix(inputLine[i:], substring) {
 				for k := 0; k < len(substring); k++ {
 					char := inputLine[i+k]
 					index := int(char) - 32
-					fmt.Print(getColor(color) + slice[index][j] + Reset)
+					if IsOutput {
+						str += slice[index][j] 
+					}
+					fmt.Print(GetColor(color) + slice[index][j] + Reset)
 				}
-				i += len(substring)
-				temp = ind[1:] // skips the chars just processed
+				i += len(substring) // skips the chars just processed
 			} else {
 				char := inputLine[i]
 				index := int(char) - 32
+				if IsOutput {
+					str += slice[index][j] 
+				}else{
 				if len(os.Args) == 3 {
-					fmt.Print(getColor(color) + slice[index][j])
+					fmt.Print(GetColor(color) + slice[index][j])
 				} else {
 					fmt.Print(slice[index][j])
 				}
+				}
+				
 				i++
 			}
 		}
 		fmt.Println()
 	}
+	return str
 }
 
-func getColor(colors string) string {
+func GetColor(colors string) string {
 	switch strings.ToLower(colors) {
 	case "black":
 		return Black
@@ -72,25 +77,24 @@ func getColor(colors string) string {
 		return Cyan
 	case "white":
 		return White
+	case "orange":
+		return Orange
 	default:
 		if strings.HasPrefix(colors, "rgb(") && strings.HasSuffix(colors, ")") {
-			rgbRegex := regexp.MustCompile(`rgb\((\d+),(\d+),(\d+)\)`)
-			match := rgbRegex.FindStringSubmatch(colors)
-			if match != nil {
-				r, _ := strconv.Atoi(match[1])
-				g, _ := strconv.Atoi(match[2])
-				b, _ := strconv.Atoi(match[3])
-				return fmt.Sprintf("\x1b[38;2;%d;%d;%dm", r, g, b)
+			inner := colors[4 : len(colors)-1]
+			components := strings.Split(inner, ", ")
+			if len(components) == 3 {
+				r, err := strconv.Atoi(components[0])
+				g, err1 := strconv.Atoi(components[1])
+				b, err2 := strconv.Atoi(components[2])
+				
+				if (err == nil && err1 == nil && err2 == nil) &&  (r <= 255 && r >=0) && (g <= 255 && g >=0)&&  (b <= 255 && b >=0){
+					return "\x1b[38;2;" + components[0] + ";" + components[1] + ";" + components[2] + "m"
+				}
 			}
-		}else if strings.HasPrefix(colors, "#"){
-			hexRegex := regexp.MustCompile(`#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})`)
-			match := hexRegex.FindStringSubmatch(colors)
-			if match != nil {
-				r, _ := strconv.ParseInt(match[1], 16, 8)
-				g, _ := strconv.ParseInt(match[2], 16, 8)
-				b, _ := strconv.ParseInt(match[3], 16, 8)
-				return fmt.Sprintf("\x1b[38;2;%d;%d;%dm", r, g, b)
-			}
+			fmt.Println("ERROR: the color isn't available.\nRetry with a valid RGB code.")
+			fmt.Println()
+			os.Exit(69)
 		}
 		return ""
 	}

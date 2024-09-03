@@ -8,9 +8,10 @@ import (
 	color "color/ressources"
 )
 
-var colors string
-
-// substring string
+var (
+	colors     string
+	outputFile string
+)
 
 func formatError() {
 	fmt.Println("Usage: go run . [OPTION] [STRING]")
@@ -18,22 +19,42 @@ func formatError() {
 	fmt.Println("EX: go run . --color=<color> <substring to be colored> \"something\"")
 }
 
-func optionFlag() {
+func optionFlag() bool {
 	option := os.Args[1:]
-	for i := 0; i < len(option); i++ {
-		if strings.HasPrefix(string(option[i]), "--color=") {
-			colors = strings.TrimPrefix(string(option[i]), "--color=")
+
+	if strings.HasPrefix(string(option[0]), "--color=") && !strings.HasPrefix(string(option[1]), "--output=") {
+		colors = strings.TrimPrefix(string(option[0]), "--color=")
+	} else if strings.HasPrefix(string(option[0]), "--output=") && !strings.HasPrefix(string(option[1]), "--color=") {
+		outputFile = strings.TrimPrefix(string(option[0]), "--output=")
+		color.IsOutput = true
+	} else {
+		if !strings.HasPrefix(string(option[0]), "--color=") && !strings.HasPrefix(string(option[0]), "--output=") {
+			if len(os.Args) > 3 {
+				formatError()
+				return false
+			}
+		} else {
+			fmt.Println("ss")
+			return false
 		}
 	}
+
+	if color.GetColor(colors) == "" && strings.HasPrefix(option[0], "--color=") {
+		fmt.Println("ERROR: the color isn't available.\nRetry with rgb.")
+		fmt.Println()
+		return false
+	}
+	return true
 }
 
 func main() {
 	var banner string
 	var input string
 	var substring string
+	var s string
 
 	if len(os.Args) == 2 {
-		if strings.HasPrefix(os.Args[1], "--color=") {
+		if strings.HasPrefix(os.Args[1], "--color=") || strings.HasPrefix(os.Args[1], "--output=") {
 			formatError()
 			return
 		} else {
@@ -41,30 +62,46 @@ func main() {
 			banner = "standard"
 		}
 	} else if len(os.Args) == 3 {
-		if strings.HasPrefix(os.Args[1], "--color=") {
+		if !optionFlag() {
+			return
+		}
+		if strings.HasPrefix(os.Args[1], "--color=")  || strings.HasPrefix(os.Args[1], "--output="){
 			input = os.Args[2]
 			banner = "standard"
-			optionFlag()
+			
 		} else {
 			input = os.Args[1]
 			banner = os.Args[2]
 		}
 	} else if len(os.Args) == 4 {
+		if !optionFlag() {
+			return
+		}
 		if strings.HasPrefix(os.Args[1], "--color=") {
 			substring = os.Args[2]
 			input = os.Args[3]
 			banner = "standard"
-			optionFlag()
-		} else {
+			if !strings.Contains(input, substring) && (input == "standard" || input == "shadow" || input == "thinkertoy") {
+				input = os.Args[2]
+				banner = os.Args[3]
+			}
+
+		}else if color.IsOutput{
+			input = os.Args[2]
+			banner = os.Args[3]
+		}else {
 			formatError()
 			return
 		}
 	} else if len(os.Args) == 5 {
+		if !optionFlag() {
+			return
+		}
 		if strings.HasPrefix(os.Args[1], "--color=") {
 			substring = os.Args[2]
 			input = os.Args[3]
 			banner = os.Args[4]
-			optionFlag()
+			
 		} else {
 			formatError()
 			return
@@ -73,9 +110,18 @@ func main() {
 		formatError()
 		return
 	}
-	if !strings.HasPrefix(os.Args[1], "--color=") {
-		if banner != "standard" && banner != "shadow" && banner != "thinkertoy" {
-			fmt.Println("Error: Not a valid banner")
+	if banner != "standard" && banner != "shadow" && banner != "thinkertoy" {
+		fmt.Println("Error: Not a valid banner")
+		return
+	}
+
+	if !color.IsPrintable(substring) || color.HasWhiteSpace(substring) {
+		fmt.Println("\n[Check README file]")
+		return
+	}
+	inputLines := strings.Split(input, "\\n")
+	for _, line := range inputLines {
+		if !color.IsPrintable(line) {
 			return
 		}
 	}
@@ -84,18 +130,19 @@ func main() {
 	if input == "" {
 		return
 	} else {
-		inputLines := strings.Split(input, "\\n")
-		// checking if the input has only newlines
 		inputLines = color.OnlyNewLine(inputLines)
-		if !color.IsPrintable(inputLines){
-			return
-		}
-		instences := color.FirstInstance(substring,input)
 		for _, value := range inputLines {
 			if value == "" {
-				fmt.Println()
+				if color.IsOutput {
+					s += "\n"
+				} else {
+					fmt.Println()
+				}
 			} else {
-				color.Printer(input, color.Slice, substring, colors, instences)
+				if color.IsOutput {
+					s += color.Printer(value, color.Slice, substring, colors)
+				}
+				color.Printer(value, color.Slice, substring, colors)
 			}
 		}
 	}
